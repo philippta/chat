@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+    body {
+        margin: 0;
+        font-family: monospace;
+    }
+    #in {
+        border: none;
+        border-top: 1px solid #aaa;
+        width: 100%;
+        position: fixed;
+        bottom: 0;
+        height: 30px;
+        padding: 5px;
+        box-sizing: border-box;
+        font-family: monospace;
+    }
+    #in:focus {
+        outline: none;
+    }
+    #out {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 30px;
+        overflow: auto;
+        padding: 5px;
+        box-sizing: border-box;
+    }
+    </style>
+</head>
+
+<body>
+    <input id="in" type="text" disabled>
+    <div id="out"></div>
+    <script>
+        var input = document.getElementById("in");
+        var output = document.getElementById("out");
+        var reconnectInterval = null;
+        var socket = null;
+
+        function connect() {
+            socket = new WebSocket("ws://" + location.host + "/ws");
+
+            socket.onmessage = function (e) {
+                output.appendChild(document.createTextNode(e.data));
+                output.appendChild(document.createElement("br"));
+                output.scrollTop = output.scrollHeight;
+            };
+
+            socket.onopen = function () {
+                clearInterval(reconnectInterval);
+                reconnectInterval = null;
+                input.removeAttribute("disabled");
+            };
+
+            socket.onclose = function () {
+                input.setAttribute("disabled", "disabled");
+                if (!reconnectInterval) {
+                    reconnectInterval = setInterval(function () {
+                        connect()
+                    }, 1000);
+                }
+            };
+        }
+        connect();
+
+        input.addEventListener("keypress", function (e) {
+            if (e.keyCode == 13 && input.value.trim() != "") {
+                socket.send(input.value);
+                input.value = "";
+            }
+        });
+    </script>
+</body>
+
+</html>
